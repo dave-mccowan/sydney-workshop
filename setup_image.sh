@@ -31,6 +31,10 @@ wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbi
 wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbican-client-file-parameter.patch
 wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbican-client-cliff-names.patch
 
+# chmod +x
+chmod +x setup_image_more.sh
+chmod +x setup_student_vm.sh
+
 # get cirros image
 mkdir -p cache/image
 wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img -O ~/cache/image/cirros-0.3.4-x86_64-disk.img

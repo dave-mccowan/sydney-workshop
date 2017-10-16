@@ -2,8 +2,8 @@
 # setup
 ########
 local_ip=`ip addr show eth0 | grep -Po 'inet \K[\d.]+'`
-local_host=`cat /etc/hostname`
 short_host=`hostname -s`
+local_host=$short_host.localdomain
 
 echo "::1 localhost localhost.localdomain localhost6 localhost6.localdomain6" > /etc/hosts
 echo "127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4" >> /etc/hosts
@@ -17,7 +17,7 @@ echo "$local_ip $local_host $short_host" >> /etc/hosts
 cd ~
 cat > ~/389.inf << EOF
 [General]
-FullMachineName=`hostname -f`
+FullMachineName=$local_host
 SuiteSpotUserID=nobody
 ServerRoot=/var/lib/dirsrv
 [slapd]
