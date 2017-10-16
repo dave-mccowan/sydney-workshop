@@ -1,0 +1,581 @@
+diff --git a/barbicanclient/barbican_cli/v1/secrets.py b/barbicanclient/barbican_cli/v1/secrets.py
+index db91c62..eb3ed81 100644
+--- a/barbicanclient/barbican_cli/v1/secrets.py
++++ b/barbicanclient/barbican_cli/v1/secrets.py
+@@ -64,7 +64,7 @@ class GetSecret(show.ShowOne):
+         if args.decrypt or args.payload:
+             entity = self.app.client_manager.key_manager.secrets.get(
+                 args.URI, args.payload_content_type)
+-            return (('Payload',),
++            return (('payload',),
+                     (entity.payload,))
+         else:
+             entity = self.app.client_manager.key_manager.secrets.get(
+diff --git a/barbicanclient/v1/acls.py b/barbicanclient/v1/acls.py
+index 3968ce0..d9e6c4f 100644
+--- a/barbicanclient/v1/acls.py
++++ b/barbicanclient/v1/acls.py
+@@ -30,11 +30,12 @@ VALID_ACL_OPERATIONS = ['read', 'write', 'delete', 'list']
+ 
+ class ACLFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Operation Type",
+-               "Project Access",
+-               "Users",
+-               "Created",
+-               "Updated",
++    columns = ("operation_type",
++               "project_access",
++               "users",
++               "created",
++               "updated",
++               "acl_ref",
+                )
+ 
+     def _get_formatted_data(self):
+@@ -152,7 +153,7 @@ class _PerOperationACL(ACLFormatter):
+     def _validate_users_type(self):
+         if self.users and not (type(self.users) is list or
+                                type(self.users) is set):
+-            raise ValueError('Users value is expected to be provided'
++            raise ValueError('users value is expected to be provided'
+                              ' as list/set.')
+ 
+ 
+diff --git a/barbicanclient/v1/cas.py b/barbicanclient/v1/cas.py
+index d076e4b..8f77f4c 100644
+--- a/barbicanclient/v1/cas.py
++++ b/barbicanclient/v1/cas.py
+@@ -34,15 +34,15 @@ def lazy(func):
+ 
+ class CAFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("CA href",
+-               "Name",
+-               "Description",
+-               "Created",
+-               "Updated",
+-               "Status",
+-               "Plugin Name",
+-               "Plugin CA ID",
+-               "Expiration"
++    columns = ("ca_ref",
++               "name",
++               "description",
++               "created",
++               "updated",
++               "status",
++               "plugin_name",
++               "plugin_ca_id",
++               "expiration"
+                )
+ 
+     def _get_formatted_data(self):
+@@ -204,7 +204,7 @@ class CAManager(base.BaseEntityManager):
+         :raises barbicanclient.exceptions.HTTPClientError: 4xx Responses
+         :raises barbicanclient.exceptions.HTTPServerError: 5xx Responses
+         """
+-        LOG.debug("Getting ca - CA href: {0}".format(ca_ref))
++        LOG.debug("Getting ca - ca_ref: {0}".format(ca_ref))
+         base.validate_ref(ca_ref, 'CA')
+         return CA(
+             api=self._api,
+diff --git a/barbicanclient/v1/containers.py b/barbicanclient/v1/containers.py
+index 45cdf48..1719acc 100644
+--- a/barbicanclient/v1/containers.py
++++ b/barbicanclient/v1/containers.py
+@@ -37,13 +37,13 @@ def _immutable_after_save(func):
+ 
+ class ContainerFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Container href",
+-               "Name",
+-               "Created",
+-               "Status",
+-               "Type",
+-               "Secrets",
+-               "Consumers",
++    columns = ("container_ref",
++               "name",
++               "created",
++               "status",
++               "type",
++               "secrets",
++               "consumers",
+                )
+ 
+     def _get_formatted_data(self):
+@@ -262,15 +262,15 @@ class RSAContainerFormatter(formatter.EntityFormatter):
+     def _get_generic_columns(self):
+         return ContainerFormatter.columns
+ 
+-    columns = ("Container href",
+-               "Name",
+-               "Created",
+-               "Status",
+-               "Type",
+-               "Public Key",
+-               "Private Key",
+-               "PK Passphrase",
+-               "Consumers",
++    columns = ("container_ref",
++               "name",
++               "created",
++               "status",
++               "type",
++               "public_key",
++               "private_key",
++               "private_key_passphrase",
++               "consumers",
+                )
+ 
+     def _get_formatted_data(self):
+@@ -379,16 +379,16 @@ class CertificateContainerFormatter(formatter.EntityFormatter):
+     def _get_generic_columns(self):
+         return ContainerFormatter.columns
+ 
+-    columns = ("Container href",
+-               "Name",
+-               "Created",
+-               "Status",
+-               "Type",
+-               "Certificate",
+-               "Intermediates",
+-               "Private Key",
+-               "PK Passphrase",
+-               "Consumers",
++    columns = ("container_ref",
++               "name",
++               "created",
++               "status",
++               "type",
++               "certificate",
++               "intermediates",
++               "private_key",
++               "private_key_passphrase",
++               "consumers",
+                )
+ 
+     def _get_formatted_data(self):
+diff --git a/barbicanclient/v1/orders.py b/barbicanclient/v1/orders.py
+index 3b62f97..b85a3b1 100644
+--- a/barbicanclient/v1/orders.py
++++ b/barbicanclient/v1/orders.py
+@@ -37,21 +37,21 @@ def immutable_after_save(func):
+ 
+ class KeyOrderFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Order href",
+-               "Type",
+-               "Container href",
+-               "Secret href",
+-               "Created",
+-               "Status",
+-               "Error code",
+-               "Error message"
++    columns = ("order_ref",
++               "type",
++               "container_ref",
++               "secret_ref",
++               "created",
++               "status",
++               "error_status_code",
++               "error_reason"
+                )
+ 
+     def _get_formatted_data(self):
+         created = self.created.isoformat() if self.created else None
+         data = (self.order_ref,
+-                "Key",
+-                "N/A",
++                "key",
++                "",
+                 self.secret_ref,
+                 created,
+                 self.status,
+@@ -63,22 +63,22 @@ class KeyOrderFormatter(formatter.EntityFormatter):
+ 
+ class AsymmetricOrderFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Order href",
+-               "Type",
+-               "Container href",
+-               "Secret href",
+-               "Created",
+-               "Status",
+-               "Error code",
+-               "Error message"
++    columns = ("order_ref",
++               "type",
++               "container_ref",
++               "secret_ref",
++               "created",
++               "status",
++               "error_status_code",
++               "error_reason"
+                )
+ 
+     def _get_formatted_data(self):
+         created = self.created.isoformat() if self.created else None
+         data = (self.order_ref,
+-                "Asymmetric",
++                "asymmetric",
+                 self.container_ref,
+-                "N/A",
++                "",
+                 created,
+                 self.status,
+                 self.error_status_code,
+@@ -89,22 +89,22 @@ class AsymmetricOrderFormatter(formatter.EntityFormatter):
+ 
+ class CertificateOrderFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Order href",
+-               "Type",
+-               "Container href",
+-               "Secret href",
+-               "Created",
+-               "Status",
+-               "Error code",
+-               "Error message"
++    columns = ("order_ref",
++               "type",
++               "container_ref",
++               "secret_ref",
++               "created",
++               "status",
++               "error_status_code",
++               "error_reason"
+                )
+ 
+     def _get_formatted_data(self):
+         created = self.created.isoformat() if self.created else None
+         data = (self.order_ref,
+-                "Certificate",
++                "certificate",
+                 self.container_ref,
+-                "N/A",
++                "",
+                 created,
+                 self.status,
+                 self.error_status_code,
+@@ -394,7 +394,7 @@ class OrderManager(base.BaseEntityManager):
+         :raises barbicanclient.exceptions.HTTPClientError: 4xx Responses
+         :raises barbicanclient.exceptions.HTTPServerError: 5xx Responses
+         """
+-        LOG.debug("Getting order - Order href: {0}".format(order_ref))
++        LOG.debug("Getting order - order_ref: {0}".format(order_ref))
+         base.validate_ref(order_ref, 'Order')
+         try:
+             response = self._api.get(order_ref)
+diff --git a/barbicanclient/v1/secrets.py b/barbicanclient/v1/secrets.py
+index c2577d0..bd4f71e 100644
+--- a/barbicanclient/v1/secrets.py
++++ b/barbicanclient/v1/secrets.py
+@@ -47,16 +47,16 @@ def immutable_after_save(func):
+ 
+ class SecretFormatter(formatter.EntityFormatter):
+ 
+-    columns = ("Secret href",
+-               "Name",
+-               "Created",
+-               "Status",
+-               "Content types",
+-               "Algorithm",
+-               "Bit length",
+-               "Secret type",
+-               "Mode",
+-               "Expiration",
++    columns = ("secret_ref",
++               "name",
++               "created",
++               "status",
++               "content_types",
++               "algorithm",
++               "bit_length",
++               "secret_type",
++               "mode",
++               "expiration",
+                )
+ 
+     def _get_formatted_data(self):
+@@ -454,7 +454,7 @@ class SecretManager(base.BaseEntityManager):
+         :raises barbicanclient.exceptions.HTTPClientError: 4xx Responses
+         :raises barbicanclient.exceptions.HTTPServerError: 5xx Responses
+         """
+-        LOG.debug("Getting secret - Secret href: {0}".format(secret_ref))
++        LOG.debug("Getting secret - secret_ref: {0}".format(secret_ref))
+         base.validate_ref(secret_ref, 'Secret')
+         return Secret(
+             api=self._api,
+diff --git a/functionaltests/cli/v1/behaviors/container_behaviors.py b/functionaltests/cli/v1/behaviors/container_behaviors.py
+index d487eda..cb05bed 100644
+--- a/functionaltests/cli/v1/behaviors/container_behaviors.py
++++ b/functionaltests/cli/v1/behaviors/container_behaviors.py
+@@ -54,7 +54,7 @@ class ContainerBehaviors(base_behaviors.BaseBehaviors):
+ 
+         container_data = self._prettytable_to_dict(stdout)
+ 
+-        container_href = container_data['Container href']
++        container_href = container_data['container_ref']
+         self.container_hrefs_to_delete.append(container_href)
+         return container_href
+ 
+diff --git a/functionaltests/cli/v1/behaviors/secret_behaviors.py b/functionaltests/cli/v1/behaviors/secret_behaviors.py
+index 1e970f1..7a56397 100644
+--- a/functionaltests/cli/v1/behaviors/secret_behaviors.py
++++ b/functionaltests/cli/v1/behaviors/secret_behaviors.py
+@@ -75,7 +75,7 @@ class SecretBehaviors(base_behaviors.BaseBehaviors):
+ 
+         secret_data = self._prettytable_to_dict(stdout)
+ 
+-        secret_href = secret_data['Secret href']
++        secret_href = secret_data['secret_ref']
+         self.secret_hrefs_to_delete.append(secret_href)
+         return secret_href
+ 
+@@ -122,7 +122,7 @@ class SecretBehaviors(base_behaviors.BaseBehaviors):
+             secret = stdout.rstrip()
+         else:
+             secret_data = self._prettytable_to_dict(stdout)
+-            secret = secret_data['Payload']
++            secret = secret_data['payload']
+ 
+         return secret
+ 
+diff --git a/functionaltests/cli/v1/smoke/test_acl.py b/functionaltests/cli/v1/smoke/test_acl.py
+index cae2c4e..176c31a 100644
+--- a/functionaltests/cli/v1/smoke/test_acl.py
++++ b/functionaltests/cli/v1/smoke/test_acl.py
+@@ -50,19 +50,19 @@ class ACLTestCase(CmdLineTestCase):
+                                              users=['u1', 'u2'],
+                                              use_short_arg=use_short_arg)
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertIn('u2', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertIn(secret_ref, data['Secret ACL Ref'])
++        self.assertIn('u1', data['users'])
++        self.assertIn('u2', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertIn(secret_ref, data['acl_ref'])
+ 
+         data = self.acl_behaviors.acl_submit(entity_ref=container_ref,
+                                              users=['u2', 'u3'],
+                                              use_short_arg=use_short_arg)
+         self.assertIsNotNone(data)
+-        self.assertIn('u3', data['Users'])
+-        self.assertNotIn('u1', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertIn(container_ref, data['Container ACL Ref'])
++        self.assertIn('u3', data['users'])
++        self.assertNotIn('u1', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertIn(container_ref, data['acl_ref'])
+ 
+     @utils.parameterized_dataset(ARGS_TYPE)
+     @testcase.attr('positive')
+@@ -76,20 +76,20 @@ class ACLTestCase(CmdLineTestCase):
+                                              project_access=False,
+                                              use_short_arg=use_short_arg)
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertIn('u2', data['Users'])
+-        self.assertEqual('False', data['Project Access'])
+-        self.assertIn(secret_ref, data['Secret ACL Ref'])
++        self.assertIn('u1', data['users'])
++        self.assertIn('u2', data['users'])
++        self.assertEqual('False', data['project_access'])
++        self.assertIn(secret_ref, data['acl_ref'])
+ 
+         data = self.acl_behaviors.acl_submit(entity_ref=container_ref,
+                                              users=[],
+                                              project_access=True,
+                                              use_short_arg=use_short_arg)
+         self.assertIsNotNone(data)
+-        self.assertNotIn('u1', data['Users'])
+-        self.assertNotIn('u2', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertIn(container_ref, data['Container ACL Ref'])
++        self.assertNotIn('u1', data['users'])
++        self.assertNotIn('u2', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertIn(container_ref, data['acl_ref'])
+ 
+     @utils.parameterized_dataset(ARGS_TYPE)
+     @testcase.attr('positive')
+@@ -100,17 +100,17 @@ class ACLTestCase(CmdLineTestCase):
+                                              project_access=False,
+                                              users=['u1', 'u2'])
+         self.assertIsNotNone(data)
+-        self.assertEqual('False', data['Project Access'])
++        self.assertEqual('False', data['project_access'])
+ 
+         acls = self.acl_behaviors.acl_add(entity_ref=secret_ref,
+                                           users=['u2', 'u3'],
+                                           use_short_arg=use_short_arg)
+         data = acls[0]  # get 'read' operation ACL data
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertIn('u3', data['Users'])
+-        self.assertEqual('False', data['Project Access'])
+-        self.assertIn(secret_ref, data['Secret ACL Ref'])
++        self.assertIn('u1', data['users'])
++        self.assertIn('u3', data['users'])
++        self.assertEqual('False', data['project_access'])
++        self.assertIn(secret_ref, data['acl_ref'])
+ 
+         # make sure there is no change in existing users with blank users add
+         acls = self.acl_behaviors.acl_add(entity_ref=secret_ref,
+@@ -118,17 +118,17 @@ class ACLTestCase(CmdLineTestCase):
+                                           use_short_arg=use_short_arg)
+         data = acls[0]  # get 'read' operation ACL data
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertIn('u2', data['Users'])
+-        self.assertIn('u3', data['Users'])
++        self.assertIn('u1', data['users'])
++        self.assertIn('u2', data['users'])
++        self.assertIn('u3', data['users'])
+ 
+         acls = self.acl_behaviors.acl_add(entity_ref=secret_ref,
+                                           users=None, project_access=True,
+                                           use_short_arg=use_short_arg)
+         data = acls[0]  # get 'read' operation ACL data
+         self.assertIsNotNone(data)
+-        self.assertIn('u2', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
++        self.assertIn('u2', data['users'])
++        self.assertEqual('True', data['project_access'])
+ 
+     @utils.parameterized_dataset(ARGS_TYPE)
+     @testcase.attr('positive')
+@@ -141,17 +141,17 @@ class ACLTestCase(CmdLineTestCase):
+                                              project_access=False,
+                                              users=['u1', 'u2'])
+         self.assertIsNotNone(data)
+-        self.assertEqual('False', data['Project Access'])
++        self.assertEqual('False', data['project_access'])
+ 
+         acls = self.acl_behaviors.acl_remove(entity_ref=container_ref,
+                                              users=['u2', 'u3'],
+                                              use_short_arg=use_short_arg)
+         data = acls[0]  # get 'read' operation ACL data
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertNotIn('u2', data['Users'])
+-        self.assertEqual('False', data['Project Access'])
+-        self.assertIn(container_ref, data['Container ACL Ref'])
++        self.assertIn('u1', data['users'])
++        self.assertNotIn('u2', data['users'])
++        self.assertEqual('False', data['project_access'])
++        self.assertIn(container_ref, data['acl_ref'])
+ 
+         # make sure there is no change in existing users with blank users
+         # remove
+@@ -160,8 +160,8 @@ class ACLTestCase(CmdLineTestCase):
+                                              use_short_arg=use_short_arg)
+         data = acls[0]  # get 'read' operation ACL data
+         self.assertIsNotNone(data)
+-        self.assertIn('u1', data['Users'])
+-        self.assertEqual('False', data['Project Access'])
++        self.assertIn('u1', data['users'])
++        self.assertEqual('False', data['project_access'])
+ 
+     @testcase.attr('positive')
+     def test_acl_get(self):
+@@ -175,15 +175,15 @@ class ACLTestCase(CmdLineTestCase):
+ 
+         data = self.acl_behaviors.acl_get(entity_ref=secret_ref)
+ 
+-        self.assertIn('u2', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertEqual(secret_ref + "/acl", data['Secret ACL Ref'])
++        self.assertIn('u2', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertEqual(secret_ref + "/acl", data['secret_ref'])
+ 
+         data = self.acl_behaviors.acl_get(entity_ref=secret_ref + "///")
+ 
+-        self.assertIn('u2', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertEqual(secret_ref + "/acl", data['Secret ACL Ref'])
++        self.assertIn('u2', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertEqual(secret_ref + "/acl", data['acl_ref'])
+ 
+         data = self.acl_behaviors.acl_submit(entity_ref=container_ref,
+                                              project_access=False,
+@@ -192,10 +192,10 @@ class ACLTestCase(CmdLineTestCase):
+ 
+         data = self.acl_behaviors.acl_get(entity_ref=container_ref)
+ 
+-        self.assertIn('u4', data['Users'])
+-        self.assertIn('u5', data['Users'])
+-        self.assertEqual('False', data['Project Access'])
+-        self.assertEqual(container_ref + '/acl', data['Container ACL Ref'])
++        self.assertIn('u4', data['users'])
++        self.assertIn('u5', data['users'])
++        self.assertEqual('False', data['project_access'])
++        self.assertEqual(container_ref + '/acl', data['acl_ref'])
+ 
+     @testcase.attr('positive')
+     def test_acl_delete(self):
+@@ -209,17 +209,17 @@ class ACLTestCase(CmdLineTestCase):
+ 
+         data = self.acl_behaviors.acl_get(entity_ref=secret_ref)
+ 
+-        self.assertEqual('[]', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
+-        self.assertEqual(secret_ref + "/acl", data['Secret ACL Ref'])
++        self.assertEqual('[]', data['users'])
++        self.assertEqual('True', data['project_access'])
++        self.assertEqual(secret_ref + "/acl", data['acl_ref'])
+ 
+         # deleting again should be okay as secret or container always has
+         # default ACL settings
+         self.acl_behaviors.acl_delete(entity_ref=secret_ref + '////')
+         data = self.acl_behaviors.acl_get(entity_ref=secret_ref)
+ 
+-        self.assertEqual('[]', data['Users'])
+-        self.assertEqual('True', data['Project Access'])
++        self.assertEqual('[]', data['users'])
++        self.assertEqual('True', data['project_access'])
+ 
+     @testcase.attr('negative')
+     def test_acl_entity_ref_input_with_acl_uri(self):
+diff --git a/functionaltests/cli/v1/smoke/test_container.py b/functionaltests/cli/v1/smoke/test_container.py
+index f0244ee..58ea21c 100644
+--- a/functionaltests/cli/v1/smoke/test_container.py
++++ b/functionaltests/cli/v1/smoke/test_container.py
+@@ -39,7 +39,7 @@ class ContainerTestCase(CmdLineTestCase):
+         self.assertIsNotNone(container_href)
+ 
+         container = self.container_behaviors.get_container(container_href)
+-        self.assertEqual(container_href, container['Container href'])
++        self.assertEqual(container_href, container['container_ref'])
+ 
+     @testcase.attr('positive')
+     def test_container_list(self):
+diff --git a/functionaltests/cli/v1/smoke/test_secret.py b/functionaltests/cli/v1/smoke/test_secret.py
+index ed0882b..a848e72 100644
+--- a/functionaltests/cli/v1/smoke/test_secret.py
++++ b/functionaltests/cli/v1/smoke/test_secret.py
+@@ -73,7 +73,7 @@ class SecretTestCase(CmdLineTestCase):
+         self.assertIsNotNone(secret_href)
+ 
+         secret = self.secret_behaviors.get_secret(secret_href)
+-        self.assertEqual(secret_href, secret['Secret href'])
++        self.assertEqual(secret_href, secret['secret_ref'])
+ 
+     @testcase.attr('positive')
+     def test_secret_store(self):
+@@ -81,7 +81,7 @@ class SecretTestCase(CmdLineTestCase):
+         self.assertIsNotNone(secret_href)
+ 
+         secret = self.secret_behaviors.get_secret(secret_href)
+-        self.assertEqual(secret_href, secret['Secret href'])
++        self.assertEqual(secret_href, secret['secret_ref'])
+ 
+     @testcase.attr('positive')
+     def test_secret_update(self):

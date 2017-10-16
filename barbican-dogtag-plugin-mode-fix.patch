@@ -1,0 +1,13 @@
+diff --git a/barbican/plugin/dogtag.py b/barbican/plugin/dogtag.py
+index 3d2f68a..55b2b7e 100644
+--- a/barbican/plugin/dogtag.py
++++ b/barbican/plugin/dogtag.py
+@@ -408,7 +408,7 @@ class DogtagKRAPlugin(sstore.SecretStoreBase):
+         # key encoded data.
+         return {DogtagKRAPlugin.ALG: key_spec.alg,
+                 DogtagKRAPlugin.BIT_LENGTH: key_spec.bit_length,
+-                DogtagKRAPlugin.SECRET_MODE: key_spec.mode,
++                # DogtagKRAPlugin.SECRET_MODE: key_spec.mode,
+                 DogtagKRAPlugin.KEY_ID: response.get_key_id(),
+                 DogtagKRAPlugin.GENERATED: True}
+ 

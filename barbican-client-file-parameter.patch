@@ -1,0 +1,317 @@
+diff --git a/barbicanclient/barbican_cli/v1/secrets.py b/barbicanclient/barbican_cli/v1/secrets.py
+index db91c62..dca35aa 100644
+--- a/barbicanclient/barbican_cli/v1/secrets.py
++++ b/barbicanclient/barbican_cli/v1/secrets.py
+@@ -13,11 +13,13 @@
+ """
+ Command-line interface sub-commands related to secrets.
+ """
++import os
++
+ from cliff import command
+ from cliff import lister
+ from cliff import show
+ 
+-from barbicanclient.v1 import secrets
++from barbicanclient import secrets
+ 
+ 
+ class DeleteSecret(command.Command):
+@@ -38,22 +40,18 @@ class GetSecret(show.ShowOne):
+     def get_parser(self, prog_name):
+         parser = super(GetSecret, self).get_parser(prog_name)
+         parser.add_argument('URI', help='The URI reference for the secret.')
+-        parser.add_argument('--decrypt', '-d',
+-                            help='if specified, retrieve the '
+-                                 'unencrypted secret data; '
+-                                 'the data type can be specified with '
+-                                 '--payload_content_type.',
+-                            action='store_true')
+-        parser.add_argument('--payload', '-p',
+-                            help='if specified, retrieve the '
+-                                 'unencrypted secret data; '
+-                                 'the data type can be specified with '
+-                                 '--payload_content_type. If the user'
+-                                 ' wishes to only retrieve the value of'
+-                                 ' the payload they must add '
+-                                 '"-f value" to format returning only'
+-                                 ' the value of the payload',
+-                            action='store_true')
++        payload_params = parser.add_mutually_exclusive_group(required=False)
++        payload_params.add_argument('--decrypt', '-d',
++                                    help='if specified, retrieve the '
++                                    'unencrypted secret data.',
++                                    action='store_true')
++        payload_params.add_argument('--payload', '-p',
++                                    help='if specified, retrieve the '
++                                    'unencrypted secret data.',
++                                    action='store_true')
++        payload_params.add_argument('--file', '-F', metavar='<filename>',
++                                    help='if specified, save the payload to a '
++                                         'new file with the given filename.')
+         parser.add_argument('--payload_content_type', '-t',
+                             default='text/plain',
+                             help='the content type of the decrypted'
+@@ -61,7 +59,7 @@ class GetSecret(show.ShowOne):
+         return parser
+ 
+     def take_action(self, args):
+-        if args.decrypt or args.payload:
++        if args.decrypt or args.payload or args.file:
+             entity = self.app.client_manager.key_manager.secrets.get(
+                 args.URI, args.payload_content_type)
+             return (('Payload',),
+@@ -71,6 +69,18 @@ class GetSecret(show.ShowOne):
+                 secret_ref=args.URI)
+             return entity._get_formatted_entity()
+ 
++    def produce_output(self, parsed_args, column_names, data):
++        if parsed_args.file:
++            if os.path.exists(parsed_args.file):
++                raise ValueError("ERROR: file already exists.")
++            with open(parsed_args.file, 'wb') as f:
++                f.write(data[0])
++
++        else:
++            super(GetSecret, self).produce_output(
++                parsed_args, column_names, data
++            )
++
+ 
+ class UpdateSecret(command.Command):
+     """Update a secret with no payload in Barbican."""
+@@ -134,10 +144,6 @@ class StoreSecret(show.ShowOne):
+         parser = super(StoreSecret, self).get_parser(prog_name)
+         parser.add_argument('--name', '-n',
+                             help='a human-friendly name.')
+-        parser.add_argument('--payload', '-p',
+-                            help='the unencrypted secret; if provided, '
+-                                 'you must also provide a '
+-                                 'payload_content_type')
+         parser.add_argument('--secret-type', '-s', default='opaque',
+                             help='the secret type; must be one of symmetric, '
+                                  'public, private, certificate, passphrase, '
+@@ -163,11 +169,21 @@ class StoreSecret(show.ShowOne):
+         parser.add_argument('--expiration', '-x',
+                             help='the expiration time for the secret in '
+                                  'ISO 8601 format.')
++        payload_params = parser.add_mutually_exclusive_group(required=False)
++        payload_params.add_argument('--payload', '-p',
++                                    help='the unencrypted secret data.')
++        payload_params.add_argument('--file', '-F', metavar='<filename>',
++                                    help='file containing the secret payload')
+         return parser
+ 
+     def take_action(self, args):
++        data = None
++        if args.file:
++            with open(args.file, 'rb') as f:
++                data = f.read()
++
+         entity = self.app.client_manager.key_manager.secrets.create(
+-            name=args.name, payload=args.payload,
++            name=args.name, payload=args.payload or data,
+             payload_content_type=args.payload_content_type,
+             payload_content_encoding=args.payload_content_encoding,
+             algorithm=args.algorithm, bit_length=args.bit_length,
+diff --git a/barbicanclient/tests/test_barbican.py b/barbicanclient/tests/test_barbican.py
+index 4c6a39c..e5c178f 100644
+--- a/barbicanclient/tests/test_barbican.py
++++ b/barbicanclient/tests/test_barbican.py
+@@ -205,6 +205,20 @@ class WhenTestingBarbicanCLI(test_client.BaseEntityResource):
+                           self.barbican.create_client,
+                           argv)
+ 
++    def test_should_prevent_mutual_exclusive_file_opt(self):
++        args = (
++            '--no-auth --endpoint {0} --os-tenant-id {1}'
++            '--file foo --payload'
++            'secret get'.format(self.endpoint, self.project_id)
++        )
++        list_secrets_url = '{0}/v1/secrets'.format(self.endpoint)
++        self.responses.get(list_secrets_url, json={"secrets": [], "total": 0})
++        client = self.create_and_assert_client(args)
++        secret_list = client.secrets.list()
++        self.assertTrue(self.responses._adapter.called)
++        self.assertEqual(1, self.responses._adapter.call_count)
++        self.assertEqual([], secret_list)
++
+ 
+ class TestBarbicanWithKeystonePasswordAuth(
+         keystone_client_fixtures.KeystoneClientFixture):
+diff --git a/doc/source/cli/cli_usage.rst b/doc/source/cli/cli_usage.rst
+index 78eed1b..e3b7353 100644
+--- a/doc/source/cli/cli_usage.rst
++++ b/doc/source/cli/cli_usage.rst
+@@ -55,9 +55,10 @@ varies from one to another. The help message for **get** can be seen below.
+ .. code-block:: bash
+ 
+     $  barbican help secret get
+-    usage: barbican secret get [-h] [-f {shell,table,value}] [-c COLUMN]
+-                               [--max-width <integer>] [--prefix PREFIX]
+-                               [--decrypt] [--payload]
++    usage: barbican secret get [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
++                               [--max-width <integer>] [--fit-width]
++                               [--print-empty] [--noindent] [--prefix PREFIX]
++                               [--decrypt | --payload | --file <filename>]
+                                [--payload_content_type PAYLOAD_CONTENT_TYPE]
+                                URI
+ 
+@@ -68,15 +69,11 @@ varies from one to another. The help message for **get** can be seen below.
+ 
+     optional arguments:
+       -h, --help            show this help message and exit
+-      --decrypt, -d         if specified, retrieve the unencrypted secret data;
+-                            the data type can be specified with
+-                            --payload_content_type.
+-      --payload, -p         if specified, retrieve the unencrypted secret data;
+-                            the data type can be specified with
+-                            --payload_content_type. If the user wishes to only
+-                            retrieve the value of the payload they must add
+-                            "-f value" to format returning only the value of
+-                            the payload
++      --decrypt, -d         if specified, retrieve the unencrypted secret data.
++      --payload, -p         if specified, retrieve the unencrypted secret data.
++      --file <filename>, -F <filename>
++                            if specified, save the payload to a new file with the
++                            given filename.
+       --payload_content_type PAYLOAD_CONTENT_TYPE, -t PAYLOAD_CONTENT_TYPE
+                             the content type of the decrypted secret (default:
+                             text/plain).
+@@ -120,6 +117,11 @@ Secret Create
+     | Expiration    | None                                                                  |
+     +---------------+-----------------------------------------------------------------------+
+ 
++Instead of using the :code:`-p` or :code:`--payload` option with the
++value of the secret in the command line, the value of
++the secret may be stored in a file.  For this method the
++:code:`-F <filename>` or :code:`--file <filename>` option can be used.
++
+ Secret Get
+ ~~~~~~~~~~
+ 
+@@ -151,6 +153,11 @@ it will be deprecated)
+     $ barbican secret get http://localhost:9311/v1/secrets/a70a45d8-4076-42a2-b111-8893d3b92a3e --payload -f value
+     my secret value
+ 
++Instead of using the :code:`-p` or :code:`--payload` option with the
++value of the secret returned to stdout, the value of
++the secret may be written to a file.  For this method the
++:code:`-F <filename>` or :code:`--file <filename>` option can be used.
++
+ Secret Delete
+ ~~~~~~~~~~~~~
+ 
+diff --git a/functionaltests/cli/v1/behaviors/secret_behaviors.py b/functionaltests/cli/v1/behaviors/secret_behaviors.py
+index 1e970f1..8b4e24a 100644
+--- a/functionaltests/cli/v1/behaviors/secret_behaviors.py
++++ b/functionaltests/cli/v1/behaviors/secret_behaviors.py
+@@ -79,6 +79,31 @@ class SecretBehaviors(base_behaviors.BaseBehaviors):
+         self.secret_hrefs_to_delete.append(secret_href)
+         return secret_href
+ 
++    def store_secret_file(self, filename="/tmp/storesecret", store_argv=[]):
++        """Store (aka create) a secret from file
++
++        The store_argv parameter allows additional command line parameters for
++        the store operation to be specified. This can be used to specify -a for
++        algorithm as an example.
++
++        :param payload The payload to use when storing the secret
++        :param store_argv The store command line parameters
++
++        :return: the href to the newly created secret
++        """
++        argv = ['secret', 'store']
++        self.add_auth_and_endpoint(argv)
++        argv.extend(['--file', filename])
++        argv.extend(store_argv)
++
++        stdout, stderr = self.issue_barbican_command(argv)
++
++        secret_data = self._prettytable_to_dict(stdout)
++
++        secret_href = secret_data['Secret href']
++        self.secret_hrefs_to_delete.append(secret_href)
++        return secret_href
++
+     def get_secret(self, secret_href):
+         """Get a secret
+ 
+@@ -126,6 +151,25 @@ class SecretBehaviors(base_behaviors.BaseBehaviors):
+ 
+         return secret
+ 
++    def get_secret_file(self, secret_href, filename='/tmp/getsecret'):
++        """Get a secret and store in a file
++
++        :param: the href to a secret
++        :param filename: name of file to store secret in
++        :return string representing the file name.
++        """
++        argv = ['secret', 'get']
++        self.add_auth_and_endpoint(argv)
++        argv.extend([secret_href])
++        argv.extend(['--file', filename])
++
++        stdout, stderr = self.issue_barbican_command(argv)
++
++        if '4xx Client error: Not Found' in stderr:
++            return {}
++
++        return filename
++
+     def list_secrets(self):
+         """List secrets
+ 
+@@ -146,3 +190,26 @@ class SecretBehaviors(base_behaviors.BaseBehaviors):
+         secrets_to_delete = list(self.secret_hrefs_to_delete)
+         for href in secrets_to_delete:
+             self.delete_secret(href)
++
++    def read_secret_test_file(self, filename='/tmp/getsecret'):
++        """Read payload from file used in testing
++
++        :param filename: name of file to write
++        :return contents of the file
++        """
++        with open(filename, "r") as myfile:
++            data = myfile.read()
++        return data
++
++    def write_secret_test_file(self, filename='/tmp/storesecret',
++                               payload="Payload for testing"):
++        """Write payload to file for use in testing
++
++        :param filename: name of file to write
++        :param payload: data to store
++        :return
++        """
++        myfile = open(filename, "wb")
++        myfile.write(payload)
++        myfile.close()
++        return
+diff --git a/functionaltests/cli/v1/smoke/test_secret.py b/functionaltests/cli/v1/smoke/test_secret.py
+index ed0882b..b030b0f 100644
+--- a/functionaltests/cli/v1/smoke/test_secret.py
++++ b/functionaltests/cli/v1/smoke/test_secret.py
+@@ -132,3 +132,19 @@ class SecretTestCase(CmdLineTestCase):
+         payload = self.secret_behaviors.get_secret_payload(secret_href,
+                                                            raw=True)
+         self.assertEqual(payload, self.expected_payload)
++
++    @testcase.attr('positive')
++    def test_secret_file_parameter_read(self):
++        secret_href = self.secret_behaviors.store_secret(
++            payload=self.expected_payload)
++        self.secret_behaviors.get_secret_file(secret_href=secret_href)
++        payload = self.secret_behaviors.read_secret_test_file()
++        self.assertEqual(payload, self.expected_payload)
++
++    @testcase.attr('positive')
++    def test_secret_file_parameter_write(self):
++        self.secret_behaviors.write_secret_test_file(
++            payload=self.expected_payload)
++        secret_href = self.secret_behaviors.store_secret_file()
++        payload = self.secret_behaviors.get_secret_payload(secret_href)
++        self.assertEqual(payload, self.expected_payload)
