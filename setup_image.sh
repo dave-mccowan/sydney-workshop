@@ -20,8 +20,6 @@ git clone https://github.com/openstack/puppet-openstack-integration.git /etc/pup
 cd ~
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_dogtag_with_hsm.sh
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_local_dogtag.sh
-wget https://vakwetu.fedorapeople.org/summit_demo_prep/flask.tar.gz
-wget https://vakwetu.fedorapeople.org/summit_demo_prep/hsm_config.tar.gz
 
 # get more files
 cd ~
@@ -39,16 +37,18 @@ chmod +x setup_student_vm.sh
 mkdir -p cache/image
 wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img -O ~/cache/image/cirros-0.3.4-x86_64-disk.img
 
-# install barbican packages to apply barbican fix
+# install barbican packages to apply barbican fixes
+yum -y install python-barbicanclient
 yum -y install python-barbican
 
 # add patches for barbican client
-git apply --directory=/usr/lib/python2.7/site-packages/ barbican-client-cliff-names.patch
-git apply --directory=/usr/lib/python2.7/site-packages/ barbican-client-file-parameter.patch
+git apply --directory=/usr/lib/python2.7/site-packages/ --exclude "*/functionaltests/*" --exclude "*/doc/*" barbican-client-cliff-names.patch
+git apply --directory=/usr/lib/python2.7/site-packages/ --exclude "*/functionaltests/*" --exclude "*/doc/*" barbican-client-file-parameter.patch
 
 # dogtag plugin fix
 git apply --directory=/usr/lib/python2.7/site-packages/ barbican-dogtag-plugin-mode-fix.patch
 
-# untar the flask app
+# get the flask app
+wget https://vakwetu.fedorapeople.org/summit_demo_prep/flask.tar.gz
 cd /root
 tar -xzf /root/flask.tar.gz

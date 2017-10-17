@@ -99,6 +99,7 @@ crudini --set /etc/barbican/barbican.conf dogtag_plugin nss_password redhat123
 systemctl restart httpd.service
 
 # add hsm config for last part of lab
+wget https://vakwetu.fedorapeople.org/summit_demo_prep/hsm_config.tar.gz
 tar -xzf /root/hsm_config.tar.gz -C /
 chown -R barbican: /etc/barbican/alias_hsm
 chown -R barbican: /etc/barbican/kra_admin_cert_hsm.pem
