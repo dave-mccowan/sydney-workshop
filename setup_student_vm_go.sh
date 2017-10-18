@@ -1,11 +1,4 @@
 #########################
-# allow password login
-#########################
-usermod -p $1$6EE.AFpC$9c9o2IkQRCVy84uq4qAjm0 centos
-sed -i 's|[#]*PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
-systemctl restart  sshd.service
-
-#########################
 # setup hostname and ip
 #########################
 local_ip=`ip addr show eth0 | grep -Po 'inet \K[\d.]+'`
@@ -180,3 +173,13 @@ firewall-cmd --reload
 
 # Restart httpd (barbican and horizon)
 systemctl restart httpd.service
+
+#########################
+# allow password login
+#########################
+usermod -p $1$6EE.AFpC$9c9o2IkQRCVy84uq4qAjm0 centos
+sed -i 's|[#]*PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
+systemctl restart  sshd.service
+
+# tag as done
+touch /root/go.done.txt
