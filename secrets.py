@@ -53,7 +53,6 @@ class GetSecret(show.ShowOne):
                                     help='if specified, save the payload to a '
                                          'new file with the given filename.')
         parser.add_argument('--payload_content_type', '-t',
-                            default='text/plain',
                             help='the content type of the decrypted'
                                  ' secret (default: %(default)s).')
         return parser

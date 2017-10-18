@@ -1,3 +1,9 @@
+#################################
+# one more barbican client patch
+#################################
+wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/secrets.py
+cp secrets.py /usr/lib/python2.7/site-packages/barbicanclient/barbican_cli/v1/secrets.py
+
 #########################
 # setup hostname and ip
 #########################
@@ -177,7 +183,7 @@ systemctl restart httpd.service
 #########################
 # allow password login
 #########################
-usermod -p $1$6EE.AFpC$9c9o2IkQRCVy84uq4qAjm0 centos
+usermod -p '$1$6EE.AFpC$9c9o2IkQRCVy84uq4qAjm0' centos
 sed -i 's|[#]*PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
 systemctl restart  sshd.service
 
