@@ -24,7 +24,6 @@ git clone https://github.com/openstack/puppet-openstack-integration.git /etc/pup
 cd ~
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_dogtag_with_hsm.sh
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_local_dogtag.sh
-wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/setup_image_more.sh
 wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/setup_student_vm.sh
 
 # chmod +x
