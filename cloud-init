@@ -1,0 +1,4 @@
+#!/bin/bash
+/root/setup_student_vm.sh > /root/setup.log
+echo done > /root/done.txt
+
