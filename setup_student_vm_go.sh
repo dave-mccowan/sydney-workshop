@@ -4,7 +4,6 @@
 usermod -p $1$6EE.AFpC$9c9o2IkQRCVy84uq4qAjm0 centos
 sed -i 's|[#]*PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
 systemctl restart  sshd.service
-/root/setup_student_vm.sh
 
 #########################
 # setup hostname and ip
