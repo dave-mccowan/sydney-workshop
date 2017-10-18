@@ -35,10 +35,10 @@ mkdir -p cache/image
 wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img -O ~/cache/image/cirros-0.3.4-x86_64-disk.img
 
 # apply patches for barbican client
-wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbican-client-file-parameter.patch
 wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbican-client-cliff-names.patch
 git apply --directory=/usr/lib/python2.7/site-packages/ --exclude "*/functionaltests/*" --exclude "*/doc/*" barbican-client-cliff-names.patch
-git apply --directory=/usr/lib/python2.7/site-packages/ --exclude "*/functionaltests/*" --exclude "*/doc/*" barbican-client-file-parameter.patch
+wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/secrets.py
+cp secrets.py /usr/lib/python2.7/site-packages/barbicanclient/barbican_cli/v1/secrets.py
 
 # apply patches for dogtag plugin
 wget https://raw.githubusercontent.com/dave-mccowan/sydney-workshop/master/barbican-dogtag-plugin-mode-fix.patch
