@@ -157,6 +157,7 @@ rm -f convert_to_local_dogtag.sh
 rm -f hsm-ca-cert.pem
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_dogtag_with_hsm.sh
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_local_dogtag.sh
+chmod +x *.sh
 wget https://vakwetu.fedorapeople.org/summit_demo_prep/hsm-ca-cert.pem
 cat hsm-ca-cert.pem >> /etc/ssl/certs/ca-bundle.trust.crt
 
