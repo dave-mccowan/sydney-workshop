@@ -152,6 +152,13 @@ wget https://vakwetu.fedorapeople.org/summit_demo_prep/hsm_config.tar.gz
 tar -xzf /root/hsm_config.tar.gz -C /
 chown -R barbican: /etc/barbican/alias_hsm
 chown -R barbican: /etc/barbican/kra_admin_cert_hsm.pem
+rm -f convert_to_dogtag_with_hsm.sh
+rm -f convert_to_local_dogtag.sh
+rm -f hsm-ca-cert.pem
+wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_dogtag_with_hsm.sh
+wget https://vakwetu.fedorapeople.org/summit_demo_prep/convert_to_local_dogtag.sh
+wget https://vakwetu.fedorapeople.org/summit_demo_prep/hsm-ca-cert.pem
+cat hsm-ca-cert.pem >> /etc/ssl/certs/ca-bundle.trust.crt
 
 # Add security group rules
 source ~/openrc
